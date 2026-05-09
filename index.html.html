@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>abctl — Airbyte CLI Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0d14;
+    --surface: #12161f;
+    --surface2: #1a1f2e;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --accent: #00e5b4;
+    --accent2: #3b82f6;
+    --accent3: #f59e0b;
+    --text: #e8eaf0;
+    --muted: #7a8099;
+    --faint: #3a3f52;
+    --danger: #f87171;
+    --success: #34d399;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,180,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,180,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  main { position: relative; z-index: 1; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    position: relative;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0,229,180,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,229,180,0.1);
+    border: 1px solid rgba(0,229,180,0.25);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 100px;
+    letter-spacing: 0.08em;
+    margin-bottom: 2rem;
+  }
+
+  .badge::before { content: '◆'; font-size: 8px; }
+
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 12vw, 9rem);
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 span.accent { color: var(--accent); }
+
+  .hero-sub {
+    font-size: 1.2rem;
+    color: var(--muted);
+    max-width: 520px;
+    line-height: 1.6;
+    margin-bottom: 3rem;
+    font-weight: 300;
+  }
+
+  .hero-cmd {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 3rem;
+  }
+
+  .hero-cmd .prompt { color: var(--faint); }
+
+  .scroll-cue {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .scroll-cue::after {
+    content: '';
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--muted), transparent);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* ── SECTIONS ── */
+  section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 5rem 2rem;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  /* ── WHY SECTION ── */
+  .why-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-top: 3rem;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .why-card {
+    background: var(--surface);
+    padding: 2rem;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .why-card:hover { background: var(--surface2); }
+
+  .why-card .icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(0,229,180,0.1);
+    border: 1px solid rgba(0,229,180,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 1rem;
+  }
+
+  .why-card h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: var(--text);
+  }
+
+  .why-card p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .strikethrough { text-decoration: line-through; color: var(--danger); opacity: 0.7; }
+
+  /* ── INTERNALS / PIPELINE ── */
+  .pipeline {
+    margin-top: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .pipe-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pipe-step::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .pipe-step:hover { background: var(--surface2); border-color: var(--border2); }
+  .pipe-step:hover::before { opacity: 1; }
+
+  .pipe-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(0,229,180,0.1);
+    border: 1px solid rgba(0,229,180,0.2);
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .pipe-content h4 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .pipe-content p {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* ── COMMANDS ── */
+  .commands-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 3rem;
+  }
+
+  .cmd-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .cmd-card:hover { border-color: var(--border2); }
+
+  .cmd-header {
+    background: var(--surface2);
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cmd-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .cmd-purpose {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: auto;
+    font-family: var(--font-mono);
+  }
+
+  .cmd-body {
+    padding: 1.25rem;
+  }
+
+  .cmd-body code {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+
+  .cmd-body p {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ── SIMILAR TOOLS ── */
+  .tools-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 2rem;
+  }
+
+  .tool-pill {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 100px;
+    padding: 8px 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .tool-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+  }
+
+  .tool-pill:hover {
+    border-color: var(--accent2);
+    background: rgba(59,130,246,0.08);
+  }
+
+  /* ── ENVIRONMENTS ── */
+  .env-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 3rem;
+  }
+
+  .env-card {
+    border-radius: 16px;
+    padding: 2rem;
+    border: 1px solid var(--border);
+  }
+
+  .env-card.dev {
+    background: linear-gradient(135deg, rgba(0,229,180,0.06), rgba(0,229,180,0.02));
+    border-color: rgba(0,229,180,0.2);
+  }
+
+  .env-card.prod {
+    background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(59,130,246,0.02));
+    border-color: rgba(59,130,246,0.2);
+  }
+
+  .env-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 100px;
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    font-weight: 500;
+  }
+
+  .env-card.dev .env-label {
+    background: rgba(0,229,180,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(0,229,180,0.3);
+  }
+
+  .env-card.prod .env-label {
+    background: rgba(59,130,246,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(59,130,246,0.3);
+  }
+
+  .env-card h3 {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  .env-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .env-list li {
+    font-size: 14px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .env-list li::before {
+    content: '→';
+    font-family: var(--font-mono);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .env-card.dev .env-list li::before { color: var(--accent); }
+  .env-card.prod .env-list li::before { color: var(--accent2); }
+
+  /* ── SUMMARY CARD ── */
+  .summary {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 3rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    margin: 2rem 0;
+  }
+
+  .summary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,229,180,0.08), transparent 60%);
+    pointer-events: none;
+  }
+
+  .summary blockquote {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    max-width: 700px;
+    margin: 0 auto 1.5rem;
+  }
+
+  .summary blockquote em { color: var(--accent); font-style: normal; }
+
+  .summary p {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 3rem 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--faint);
+    font-size: 13px;
+    font-family: var(--font-mono);
+    position: relative;
+    z-index: 1;
+  }
+
+  footer span { color: var(--muted); }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ── BEFORE / AFTER ── */
+  .ba-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-top: 3rem;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .ba-col {
+    background: var(--surface);
+    padding: 2rem;
+  }
+
+  .ba-col:first-child { border-right: 1px solid var(--border); }
+
+  .ba-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ba-col:first-child .ba-title { color: var(--danger); }
+  .ba-col:last-child .ba-title { color: var(--success); }
+
+  .ba-col:first-child .ba-title::before {
+    content: '✕';
+    font-size: 10px;
+  }
+
+  .ba-col:last-child .ba-title::before {
+    content: '✓';
+    font-size: 10px;
+  }
+
+  .ba-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ba-list li {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ba-col:first-child .ba-list li { color: var(--muted); }
+  .ba-col:last-child .ba-list li { color: var(--text); }
+
+  .ba-col:first-child .ba-list li::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--danger);
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  .ba-col:last-child .ba-list li::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero > * {
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero > *:nth-child(1) { animation-delay: 0.1s; }
+  .hero > *:nth-child(2) { animation-delay: 0.2s; }
+  .hero > *:nth-child(3) { animation-delay: 0.3s; }
+  .hero > *:nth-child(4) { animation-delay: 0.4s; }
+  .hero > *:nth-child(5) { animation-delay: 0.5s; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .why-grid, .commands-grid, .env-split, .ba-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 3.5rem; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="badge">Airbyte CLI</div>
+    <h1><span class="accent">ab</span>ctl</h1>
+    <p class="hero-sub">The single-command installer and manager for Airbyte — no Kubernetes expertise required.</p>
+    <div class="hero-cmd">
+      <span class="prompt">$</span>
+      <span>abctl local install</span>
+    </div>
+    <div class="scroll-cue">scroll</div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- WHAT IS -->
+  <section>
+    <div class="section-label">Overview</div>
+    <h2 class="section-title">What is abctl?</h2>
+    <p style="color:var(--muted); max-width:660px; font-size:1.05rem;">
+      <strong style="color:var(--text); font-weight:500;">abctl</strong> is a command-line tool provided by Airbyte to simplify installation and management of Airbyte — locally or on a server. It acts as a wrapper around Kubernetes and Docker, automatically handling the entire deployment process so you don't have to.
+    </p>
+
+    <div class="ba-grid" style="margin-top:3rem; border-radius:16px; overflow:hidden; border:1px solid var(--border);">
+      <div class="ba-col">
+        <div class="ba-title">Without abctl</div>
+        <ul class="ba-list">
+          <li>Set up Kubernetes manually</li>
+          <li>Install and configure Helm</li>
+          <li>Manage Docker containers</li>
+          <li>Configure networking rules</li>
+          <li>Manage secrets and volumes</li>
+          <li>Run many deployment commands</li>
+        </ul>
+      </div>
+      <div class="ba-col">
+        <div class="ba-title">With abctl</div>
+        <ul class="ba-list">
+          <li>One command installation</li>
+          <li>Automated cluster creation</li>
+          <li>Helm charts auto-deployed</li>
+          <li>Networking configured for you</li>
+          <li>Volumes and storage handled</li>
+          <li>UI and API services started</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- INTERNALS -->
+  <section>
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">What abctl does internally</h2>
+    <p style="color:var(--muted); max-width:580px; font-size:0.95rem; margin-bottom:0.5rem;">
+      When you run <code style="font-family:var(--font-mono); color:var(--accent); font-size:0.9rem;">abctl local install</code>, six steps fire automatically in sequence.
+    </p>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">01</div>
+        <div class="pipe-content">
+          <h4>Create local Kubernetes cluster</h4>
+          <p>Spins up a local k3d/k3s cluster — a lightweight Kubernetes distribution optimized for local use.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">02</div>
+        <div class="pipe-content">
+          <h4>Install Airbyte Helm charts</h4>
+          <p>Fetches and applies the official Airbyte Helm charts into the newly created cluster.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">03</div>
+        <div class="pipe-content">
+          <h4>Deploy all Airbyte services</h4>
+          <p>Brings up every Airbyte microservice — server, webapp, temporal, and connector catalog.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">04</div>
+        <div class="pipe-content">
+          <h4>Configure networking</h4>
+          <p>Sets up ingress, port forwarding, and service discovery so everything can communicate.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">05</div>
+        <div class="pipe-content">
+          <h4>Create storage volumes</h4>
+          <p>Provisions persistent volumes for data, logs, and database state to survive restarts.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">06</div>
+        <div class="pipe-content">
+          <h4>Start Airbyte UI &amp; API</h4>
+          <p>Airbyte is live — the web interface and REST API are accessible and ready for connections.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- COMMANDS -->
+  <section>
+    <div class="section-label">Commands</div>
+    <h2 class="section-title">Common abctl commands</h2>
+    <p style="color:var(--muted); max-width:520px; font-size:0.95rem;">Everything you need to manage your local Airbyte installation.</p>
+
+    <div class="commands-grid">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-dot" style="background:#34d399;"></div>
+          <div class="cmd-dot" style="background:#fbbf24;"></div>
+          <div class="cmd-dot" style="background:#f87171;"></div>
+          <span class="cmd-purpose">install</span>
+        </div>
+        <div class="cmd-body">
+          <code>abctl local install</code>
+          <p>Bootstraps a full Airbyte stack locally. Downloads images, creates cluster, and starts all services.</p>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-dot" style="background:#34d399;"></div>
+          <div class="cmd-dot" style="background:#fbbf24;"></div>
+          <div class="cmd-dot" style="background:#f87171;"></div>
+          <span class="cmd-purpose">status</span>
+        </div>
+        <div class="cmd-body">
+          <code>abctl local status</code>
+          <p>Reports the health of running pods, services, and the Airbyte API endpoint.</p>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-dot" style="background:#34d399;"></div>
+          <div class="cmd-dot" style="background:#fbbf24;"></div>
+          <div class="cmd-dot" style="background:#f87171;"></div>
+          <span class="cmd-purpose">stop</span>
+        </div>
+        <div class="cmd-body">
+          <code>abctl local stop</code>
+          <p>Gracefully stops all running containers while preserving volumes and configuration data.</p>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-dot" style="background:#34d399;"></div>
+          <div class="cmd-dot" style="background:#fbbf24;"></div>
+          <div class="cmd-dot" style="background:#f87171;"></div>
+          <span class="cmd-purpose">uninstall</span>
+        </div>
+        <div class="cmd-body">
+          <code>abctl local uninstall</code>
+          <p>Tears down the cluster and removes all Airbyte resources, volumes, and the local installation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ENVIRONMENTS -->
+  <section>
+    <div class="section-label">Deployment Context</div>
+    <h2 class="section-title">Where to use abctl</h2>
+    <p style="color:var(--muted); max-width:580px; font-size:0.95rem;">
+      abctl shines in development contexts. For production-grade deployments, a more hands-on Kubernetes approach is typically preferred.
+    </p>
+
+    <div class="env-split">
+      <div class="env-card dev">
+        <span class="env-label">Recommended</span>
+        <h3>Development &amp; Testing</h3>
+        <ul class="env-list">
+          <li>Local development environments</li>
+          <li>Quick prototyping and demos</li>
+          <li>CI/CD pipeline testing</li>
+          <li>Small self-hosted deployments</li>
+          <li>Learning and exploration</li>
+        </ul>
+      </div>
+      <div class="env-card prod">
+        <span class="env-label">Production</span>
+        <h3>Enterprise Deployments</h3>
+        <ul class="env-list">
+          <li>Kubernetes (raw manifests)</li>
+          <li>Helm charts with custom values</li>
+          <li>AWS EKS clusters</li>
+          <li>Azure AKS clusters</li>
+          <li>Google GKE clusters</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- SIMILAR TOOLS -->
+  <section>
+    <div class="section-label">Ecosystem</div>
+    <h2 class="section-title">Similar tools</h2>
+    <p style="color:var(--muted); max-width:560px; font-size:0.95rem;">
+      abctl is conceptually similar to these Kubernetes tooling projects — all designed to reduce the friction of running Kubernetes locally.
+    </p>
+    <div class="tools-row">
+      <div class="tool-pill">minikube</div>
+      <div class="tool-pill">kind</div>
+      <div class="tool-pill">kubectl</div>
+      <div class="tool-pill">k3d</div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- SUMMARY -->
+  <section>
+    <div class="summary">
+      <blockquote>
+        Think of abctl as a <em>one-command installer</em> and manager for Airbyte.
+      </blockquote>
+      <p>
+        It removes the complexity of manually configuring Kubernetes, Docker, networking, and deployment steps — giving you a running Airbyte instance in minutes instead of hours.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>abctl</span> · Airbyte CLI Documentation · Built with care
+</footer>
+
+</body>
+</html>
